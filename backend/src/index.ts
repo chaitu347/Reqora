@@ -4,6 +4,7 @@ import { connectDB } from "./config/db";
 import healthRoutes from "./routes/health.routes";
 import authRoutes from "./routes/auth.routes";
 import workspaceRoutes from "./routes/workspace.routes";
+import collectionRoutes from "./routes/collection.routes";
 
 const app = express();
 
@@ -11,6 +12,7 @@ app.use(express.json());
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
+app.use("/api/collections", collectionRoutes);
 
 const startServer = async () => {
   await connectDB();
