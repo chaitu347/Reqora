@@ -25,3 +25,12 @@ export const createWorkspace = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: "Failed to create workspace", error });
   }
 };
+
+export const getMyWorkspaces = async (req: AuthRequest, res: Response) => {
+  try {
+    const workspaces = await Workspace.find({ members: req.userId });
+    res.status(200).json({ workspaces });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch workspaces", error });
+  }
+};

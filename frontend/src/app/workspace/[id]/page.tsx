@@ -1,0 +1,121 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { apiFetch } from "@/lib/api";
+
+interface CollectionItem {
+  _id: string;
+  name: string;
+}
+
+export default function WorkspacePage() {
+  const params = useParams();
+  const workspaceId = params.id as string;
+
+  const [collections, setCollections] = useState<CollectionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
+    fetchCollections();
+  }, []);
+
+  const fetchCollections = async () => {
+    const res = await apiFetch("/collections/workspace/" + workspaceId);
+    if (res.ok) {
+      const data = await res.json();
+      setCollections(data.collections);
+    }
+    setLoading(false);
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    setCreating(true);
+
+    const res = await apiFetch("/collections", {
+      method: "POST",
+      body: JSON.stringify({ name: newName, workspaceId: workspaceId }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setCollections((prev) => [...prev, data.collection]);
+      setNewName("");
+    }
+    setCreating(false);
+  };
+
+  return (
+    <main className="min-h-screen bg-[#F5F6F8] px-8 py-10">
+      <div className="mx-auto max-w-4xl">
+        <a href="/dashboard" className="text-base font-medium text-[#2F6FED] hover:underline">
+          Back to workspaces
+        </a>
+
+        <h1 className="animate-step-in mt-4 text-3xl font-bold text-[#1B1D23]">
+          Collections
+        </h1>
+        <p className="animate-step-in mt-2 text-lg text-[#6B7280] [animation-delay:60ms]">
+          Group related API requests together.
+        </p>
+
+        <form
+          onSubmit={handleCreate}
+          className="animate-step-in mt-8 flex gap-3 [animation-delay:120ms]"
+        >
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="New collection name"
+            className="flex-1 rounded-xl border border-[#E2E4E9] bg-white px-4 py-3 text-lg text-[#1B1D23] placeholder-[#A0A4AD] outline-none transition-all focus:border-[#FF6B4A] focus:ring-4 focus:ring-[#FF6B4A]/10"
+          />
+          <button
+            type="submit"
+            disabled={creating}
+            className="rounded-xl bg-[#FF6B4A] px-6 py-3 text-lg font-semibold text-white transition-all hover:bg-[#FF5A35] active:scale-[0.98] disabled:opacity-60"
+          >
+            {creating ? "Creating..." : "Create"}
+          </button>
+        </form>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          {loading && (
+            <p className="text-lg text-[#6B7280]">Loading...</p>
+          )}
+
+          {!loading && collections.length === 0 && (
+            <p className="text-lg text-[#6B7280]">
+              No collections yet — create your first one above.
+            </p>
+          )}
+
+          {!loading &&
+            collections.length > 0 &&
+            collections.map((col) => {
+              return (
+                <a
+                  key={col._id}
+                  href={"/collection/" + col._id}
+                  className="animate-step-in rounded-xl border border-[#E2E4E9] bg-white p-6 transition-all hover:border-[#FF6B4A] hover:shadow-md"
+                >
+                  <h3 className="text-xl font-semibold text-[#1B1D23]">
+                    {col.name}
+                  </h3>
+                </a>
+              );
+            })}
+        </div>
+      </div>
+    </main>
+  );
+}

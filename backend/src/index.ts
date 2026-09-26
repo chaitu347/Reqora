@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { PORT } from "./config/env";
 import { connectDB } from "./config/db";
 import healthRoutes from "./routes/health.routes";
@@ -10,6 +11,12 @@ import runnerRoutes from "./routes/runner.routes";
 
 const app = express();
 
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
