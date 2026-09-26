@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes";
 import workspaceRoutes from "./routes/workspace.routes";
 import collectionRoutes from "./routes/collection.routes";
 import requestRoutes from "./routes/request.routes";
+import runnerRoutes from "./routes/runner.routes";
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/collections", collectionRoutes);
 app.use("/api/requests", requestRoutes);
+app.use("/api/run", runnerRoutes);
 
 const startServer = async () => {
   await connectDB();
