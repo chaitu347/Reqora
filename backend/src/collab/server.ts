@@ -1,5 +1,6 @@
 import { WebSocketServer } from "ws";
 import http from "http";
+// @ts-ignore
 import { setupWSConnection } from "y-websocket/bin/utils";
 
 export const setupCollabServer = (server: http.Server) => {

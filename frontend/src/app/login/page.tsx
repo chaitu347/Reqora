@@ -29,6 +29,7 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("token", data.token);
+      localStorage.setItem("userName", data.user.name);
       window.location.href = "/dashboard";
     } catch (err) {
       setError("Could not reach the server. Is the backend running?");

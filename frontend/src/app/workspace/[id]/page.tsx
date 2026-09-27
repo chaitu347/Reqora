@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import Sidebar from "@/components/Slidebar";
+import Sidebar from "@/components/Sidebar";
 
 interface CollectionItem {
   _id: string;
@@ -26,6 +26,10 @@ export default function WorkspacePage() {
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [members, setMembers] = useState<{ _id: string; name: string; email: string }[]>([]);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -34,6 +38,7 @@ export default function WorkspacePage() {
       return;
     }
     fetchCollections();
+    fetchMembers();
   }, []);
 
   const fetchCollections = async () => {
@@ -45,6 +50,15 @@ export default function WorkspacePage() {
     setLoading(false);
   };
 
+  const fetchMembers = async () => {
+  const res = await apiFetch("/workspaces/" + workspaceId + "/members");
+  if (res.ok) {
+    const data = await res.json();
+    setMembers(data.members);
+  }
+};
+  
+  
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
@@ -63,6 +77,28 @@ export default function WorkspacePage() {
     setCreating(false);
   };
 
+  const handleInvite = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!inviteEmail.trim()) return;
+  setInviting(true);
+  setInviteMessage("");
+
+  const res = await apiFetch("/workspaces/" + workspaceId + "/invite", {
+    method: "POST",
+    body: JSON.stringify({ email: inviteEmail }),
+  });
+
+  const data = await res.json();
+  if (res.ok) {
+    setInviteMessage("Added " + inviteEmail);
+    setInviteEmail("");
+    fetchMembers();
+  } else {
+    setInviteMessage(data.message || "Failed to invite");
+  }
+  setInviting(false);
+};
+
   return (
     <div className="flex min-h-screen bg-[#F7F8FA]">
       <Sidebar />
@@ -79,6 +115,43 @@ export default function WorkspacePage() {
             <p className="animate-step-in mt-1 text-base text-[#6B7280] [animation-delay:60ms]">
               Organize your APIs into collections and keep your services structured.
             </p>
+            <div className="animate-step-in mt-6 max-w-2xl rounded-xl border border-[#E5E7EB] bg-white p-5 [animation-delay:90ms]">
+  <p className="text-sm font-bold uppercase tracking-wide text-[#111827]">
+    Team members
+  </p>
+
+  <div className="mt-3 flex flex-wrap gap-2">
+    {members.map((m) => (
+      <span
+        key={m._id}
+        className="rounded-full bg-[#DBEAFE] px-3 py-1.5 text-sm font-medium text-[#2563EB]"
+      >
+        {m.name}
+      </span>
+    ))}
+  </div>
+
+  <form onSubmit={handleInvite} className="mt-4 flex gap-2">
+    <input
+      type="email"
+      value={inviteEmail}
+      onChange={(e) => setInviteEmail(e.target.value)}
+      placeholder="teammate@example.com"
+      className="flex-1 rounded-lg border border-[#E5E7EB] px-3.5 py-2 text-sm text-[#111827] placeholder-[#9CA3AF] outline-none focus:border-[#111827]"
+    />
+    <button
+      type="submit"
+      disabled={inviting}
+      className="rounded-lg bg-[#111827] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1F2937] disabled:opacity-60"
+    >
+      {inviting ? "Adding..." : "Invite"}
+    </button>
+  </form>
+
+  {inviteMessage && (
+    <p className="mt-2 text-sm text-[#6B7280]">{inviteMessage}</p>
+  )}
+</div>
           </div>
         </div>
 

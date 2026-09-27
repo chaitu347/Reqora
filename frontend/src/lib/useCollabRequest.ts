@@ -8,20 +8,43 @@ interface CollabFields {
   body: string;
 }
 
-export function useCollabRequest(requestId: string, initial: CollabFields) {
+interface PresenceUser {
+  clientId: number;
+  name: string;
+  color: string;
+  focusedField: string | null;
+}
+
+const USER_COLORS = ["#2563EB", "#16A34A", "#F97316", "#DC2626", "#9333EA", "#EAB308"];
+
+export function useCollabRequest(
+  requestId: string,
+  initial: CollabFields,
+  initialHeaders: Record<string, string>
+) {
   const [fields, setFields] = useState<CollabFields>(initial);
-  const [connectedUsers, setConnectedUsers] = useState(1);
+  const [headers, setHeaders] = useState<Record<string, string>>(initialHeaders);
+  const [presence, setPresence] = useState<PresenceUser[]>([]);
+
   const ymapRef = useRef<Y.Map<string> | null>(null);
+  const yheadersRef = useRef<Y.Map<string> | null>(null);
+  const providerRef = useRef<WebsocketProvider | null>(null);
 
   useEffect(() => {
     const ydoc = new Y.Doc();
+
     const provider = new WebsocketProvider(
       "ws://localhost:4000/collab",
       "request-" + requestId,
       ydoc
     );
+    providerRef.current = provider;
+
     const ymap = ydoc.getMap<string>("fields");
     ymapRef.current = ymap;
+
+    const yheaders = ydoc.getMap<string>("headers");
+    yheadersRef.current = yheaders;
 
     if (ymap.size === 0) {
       ymap.set("method", initial.method);
@@ -29,7 +52,11 @@ export function useCollabRequest(requestId: string, initial: CollabFields) {
       ymap.set("body", initial.body);
     }
 
-    const updateFromYjs = () => {
+    if (yheaders.size === 0 && Object.keys(initialHeaders).length > 0) {
+      Object.entries(initialHeaders).forEach(([k, v]) => yheaders.set(k, v));
+    }
+
+    const updateFieldsFromYjs = () => {
       setFields({
         method: ymap.get("method") ?? "",
         url: ymap.get("url") ?? "",
@@ -37,15 +64,50 @@ export function useCollabRequest(requestId: string, initial: CollabFields) {
       });
     };
 
-    ymap.observe(updateFromYjs);
-    updateFromYjs();
+    const updateHeadersFromYjs = () => {
+      const obj: Record<string, string> = {};
+      yheaders.forEach((value, key) => {
+        obj[key] = value;
+      });
+      setHeaders(obj);
+    };
 
-    provider.awareness.on("change", () => {
-      setConnectedUsers(provider.awareness.getStates().size);
+    ymap.observe(updateFieldsFromYjs);
+    yheaders.observe(updateHeadersFromYjs);
+    updateFieldsFromYjs();
+    updateHeadersFromYjs();
+
+    const myName = localStorage.getItem("userName") || "Anonymous";
+    const myColor = USER_COLORS[Math.floor(Math.random() * USER_COLORS.length)];
+
+    const updatePresence = () => {
+      const states = provider.awareness.getStates();
+      const users: PresenceUser[] = [];
+      states.forEach((state, clientId) => {
+        if (state.user) {
+          users.push({
+            clientId,
+            name: state.user.name,
+            color: state.user.color,
+            focusedField: state.user.focusedField ?? null,
+          });
+        }
+      });
+      setPresence(users);
+    };
+
+    provider.awareness.on("change", updatePresence);
+    provider.awareness.setLocalStateField("user", {
+      name: myName,
+      color: myColor,
+      focusedField: null,
     });
+    updatePresence();
 
     return () => {
-      ymap.unobserve(updateFromYjs);
+      ymap.unobserve(updateFieldsFromYjs);
+      yheaders.unobserve(updateHeadersFromYjs);
+      provider.awareness.off("change", updatePresence);
       provider.destroy();
       ydoc.destroy();
     };
@@ -55,5 +117,31 @@ export function useCollabRequest(requestId: string, initial: CollabFields) {
     ymapRef.current?.set(key, value);
   };
 
-  return { fields, updateField, connectedUsers };
+  const setHeader = (key: string, value: string) => {
+    yheadersRef.current?.set(key, value);
+  };
+
+  const removeHeader = (key: string) => {
+    yheadersRef.current?.delete(key);
+  };
+
+  const setFocusedField = (fieldName: string | null) => {
+    const provider = providerRef.current;
+    if (!provider) return;
+    const current = provider.awareness.getLocalState()?.user;
+    provider.awareness.setLocalStateField("user", {
+      ...current,
+      focusedField: fieldName,
+    });
+  };
+
+  return {
+    fields,
+    headers,
+    updateField,
+    setHeader,
+    removeHeader,
+    presence,
+    setFocusedField,
+  };
 }

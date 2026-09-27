@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import Sidebar from "@/components/Slidebar";
+import Sidebar from "@/components/Sidebar";
 
 interface RequestItem {
   _id: string;
@@ -193,9 +193,12 @@ export default function CollectionPage() {
                         {req.method}
                       </span>
                       <div>
-                        <p className="text-base font-semibold text-[#111827]">
+                        <a
+                          href={"/request/" + req._id}
+                          className="text-base font-semibold text-[#111827] hover:underline"
+                        >
                           {req.name}
-                        </p>
+                        </a>
                         <p className="font-[family-name:var(--font-mono)] text-xs text-[#6B7280]">
                           {req.url}
                         </p>
@@ -210,7 +213,7 @@ export default function CollectionPage() {
                       {isRunning ? "Sending..." : "Send"}
                     </button>
                   </div>
-
+                  
                   {result && (
                     <div className="animate-step-in border-t border-[#E5E7EB] bg-[#F7F8FA] p-4">
                       {result.error ? (

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import Sidebar from "@/components/Slidebar";
+import Sidebar from "@/components/Sidebar";
 
 interface Workspace {
   _id: string;
