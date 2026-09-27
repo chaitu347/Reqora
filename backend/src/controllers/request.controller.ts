@@ -71,3 +71,18 @@ export const deleteRequest = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: "Failed to delete request", error });
   }
 };
+
+export const getRequestById = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const foundRequest = await ApiRequest.findById(id);
+
+    if (!foundRequest) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    res.status(200).json({ request: foundRequest });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch request", error });
+  }
+};

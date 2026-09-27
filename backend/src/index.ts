@@ -1,7 +1,9 @@
 import express from "express";
 import cors from "cors";
+import http from "http";
 import { PORT } from "./config/env";
 import { connectDB } from "./config/db";
+import { setupCollabServer } from "./collab/server";
 import healthRoutes from "./routes/health.routes";
 import authRoutes from "./routes/auth.routes";
 import workspaceRoutes from "./routes/workspace.routes";
@@ -25,9 +27,12 @@ app.use("/api/collections", collectionRoutes);
 app.use("/api/requests", requestRoutes);
 app.use("/api/run", runnerRoutes);
 
+const server = http.createServer(app);
+setupCollabServer(server);
+
 const startServer = async () => {
   await connectDB();
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 };
