@@ -30,6 +30,7 @@ export default function WorkspacePage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [inviteMessage, setInviteMessage] = useState("");
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -41,14 +42,16 @@ export default function WorkspacePage() {
     fetchMembers();
   }, []);
 
-  const fetchCollections = async () => {
-    const res = await apiFetch("/collections/workspace/" + workspaceId);
-    if (res.ok) {
-      const data = await res.json();
-      setCollections(data.collections);
-    }
-    setLoading(false);
-  };
+ const fetchCollections = async () => {
+  const res = await apiFetch("/collections/workspace/" + workspaceId);
+  if (res.ok) {
+    const data = await res.json();
+    setCollections(data.collections);
+  } else if (res.status === 403) {
+    setAccessDenied(true);
+  }
+  setLoading(false);
+};
 
   const fetchMembers = async () => {
   const res = await apiFetch("/workspaces/" + workspaceId + "/members");
@@ -106,6 +109,18 @@ export default function WorkspacePage() {
         <a href="/dashboard" className="text-sm font-medium text-[#2563EB] hover:underline">
           ← Back to workspaces
         </a>
+        {accessDenied ? (
+        <div className="mt-6 max-w-md rounded-xl border border-red-200 bg-red-50 p-6">
+          <p className="text-lg font-semibold text-[#DC2626]">Access denied</p>
+          <p className="mt-1 text-base text-[#6B7280]">
+          You're not a member of this workspace. Ask the owner to invite you.
+          </p>
+        </div>
+        ) : (
+        <>
+         {/* ...everything else that was already in the page goes here... */}
+        </>
+        )}
 
         <div className="mt-3 flex items-center justify-between">
           <div>
