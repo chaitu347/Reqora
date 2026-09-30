@@ -34,9 +34,14 @@ export const createCollection = async (req: AuthRequest, res: Response) => {
 export const getCollectionsByWorkspace = async (req: AuthRequest, res: Response) => {
   try {
     const { workspaceId } = req.params;
+  
 
     if (!req.userId) {
       return res.status(401).json({ message: "Not authorized" });
+    }
+
+   if (typeof workspaceId!== "string") {
+      return res.status(400).json({ message: "Invalid workspace id" });
     }
 
     const allowed = await isWorkspaceMember(workspaceId, req.userId);

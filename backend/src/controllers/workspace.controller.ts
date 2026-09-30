@@ -50,6 +50,10 @@ export const inviteMember = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: "Not authorized" });
     }
 
+    if (typeof id !== "string") {
+      return res.status(400).json({ message: "Invalid workspace id" });
+    }
+
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
     }
@@ -92,6 +96,10 @@ export const getWorkspaceMembers = async (req: AuthRequest, res: Response) => {
 
     if (!req.userId) {
       return res.status(401).json({ message: "Not authorized" });
+    }
+
+    if (typeof id !== "string") {
+      return res.status(400).json({ message: "Invalid workspace id" });
     }
 
     const allowed = await isWorkspaceMember(id, req.userId);
