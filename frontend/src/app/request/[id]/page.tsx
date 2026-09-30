@@ -36,6 +36,7 @@ export default function RequestEditorPage() {
     body: "",
   });
   const [initialHeaders, setInitialHeaders] = useState<Record<string, string>>({});
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -47,33 +48,55 @@ export default function RequestEditorPage() {
   }, []);
 
   const fetchRequest = async () => {
-    const res = await apiFetch("/requests/" + requestId);
-    if (res.ok) {
-      const data = await res.json();
-      const r: RequestData = data.request;
-      setRequestName(r.name);
-      setInitialFields({ method: r.method, url: r.url, body: r.body || "" });
-      setInitialHeaders(r.headers || {});
-    }
-    setLoaded(true);
-  };
+  const res = await apiFetch("/requests/" + requestId);
+  if (res.ok) {
+    const data = await res.json();
+    const r: RequestData = data.request;
+    setRequestName(r.name);
+    setInitialFields({ method: r.method, url: r.url, body: r.body || "" });
+    setInitialHeaders(r.headers || {});
+  } else if (res.status === 403 || res.status === 404) {
+    setAccessDenied(true);
+  }
+  setLoaded(true);
+};
 
   if (!loaded) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F8FA]">
-        <p className="text-lg text-[#6B7280]">Loading...</p>
-      </div>
-    );
-  }
-
   return (
-    <EditorBody
-      requestId={requestId}
-      requestName={requestName}
-      initial={initialFields}
-      initialHeaders={initialHeaders}
-    />
+    <div className="flex min-h-screen items-center justify-center bg-[#F7F8FA]">
+      <p className="text-lg text-[#6B7280]">Loading...</p>
+    </div>
   );
+}
+
+if (accessDenied) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#F7F8FA] px-4">
+      <div className="max-w-md rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+        <p className="text-xl font-semibold text-[#DC2626]">Access denied</p>
+        <p className="mt-2 text-base text-[#6B7280]">
+          You&apos;re not a member of the workspace this request belongs to.
+          Ask the owner to invite you.
+        </p>
+        <a
+          href="/dashboard"
+          className="mt-4 inline-block text-sm font-medium text-[#2563EB] hover:underline"
+        >
+          ← Back to dashboard
+        </a>
+      </div>
+    </div>
+  );
+}
+
+return (
+  <EditorBody
+    requestId={requestId}
+    requestName={requestName}
+    initial={initialFields}
+    initialHeaders={initialHeaders}
+  />
+);
 }
 
 function EditorBody({

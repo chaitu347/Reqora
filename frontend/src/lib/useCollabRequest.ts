@@ -33,10 +33,12 @@ export function useCollabRequest(
   useEffect(() => {
     const ydoc = new Y.Doc();
 
+    const token = localStorage.getItem("token") || "";
     const provider = new WebsocketProvider(
       "ws://localhost:4000/collab",
       "request-" + requestId,
-      ydoc
+      ydoc,
+      { params: { token } }
     );
     providerRef.current = provider;
 
