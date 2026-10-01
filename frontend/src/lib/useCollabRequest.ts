@@ -34,8 +34,9 @@ export function useCollabRequest(
     const ydoc = new Y.Doc();
 
     const token = localStorage.getItem("token") || "";
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:4000/collab";
     const provider = new WebsocketProvider(
-      "ws://localhost:4000/collab",
+      wsUrl,
       "request-" + requestId,
       ydoc,
       { params: { token } }
