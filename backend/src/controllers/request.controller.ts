@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { Request as ApiRequest } from "../models/request.model";
 import { AuthRequest } from "../middlewares/auth.middleware";
+import { RequestVersion } from "../models/requestVersion.model";
 import {
   isWorkspaceMember,
   workspaceIdForCollection,
@@ -130,13 +131,23 @@ export const updateRequest = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: "You are not a member of this workspace" });
     }
 
+    const before = await ApiRequest.findById(id);
+    if (!before) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    await RequestVersion.create({
+      requestId: before._id,
+      method: before.method,
+      url: before.url,
+      headers: before.headers,
+      body: before.body,
+      savedBy: req.userId,
+    });
+
     const updatedRequest = await ApiRequest.findByIdAndUpdate(id, updates, {
       returnDocument: "after",
     });
-
-    if (!updatedRequest) {
-      return res.status(404).json({ message: "Request not found" });
-    }
 
     res.status(200).json({ request: updatedRequest });
   } catch (error) {
@@ -174,5 +185,38 @@ export const deleteRequest = async (req: AuthRequest, res: Response) => {
     res.status(200).json({ message: "Request deleted" });
   } catch (error) {
     res.status(500).json({ message: "Failed to delete request", error });
+  }
+};
+
+export const getRequestVersions = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({ message: "Invalid request id" });
+    }
+
+    if (!req.userId) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    const workspaceId = await workspaceIdForRequest(id);
+    if (!workspaceId) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    const allowed = await isWorkspaceMember(workspaceId, req.userId);
+    if (!allowed) {
+      return res.status(403).json({ message: "You are not a member of this workspace" });
+    }
+
+    const versions = await RequestVersion.find({ requestId: id })
+      .sort({ createdAt: -1 })
+      .populate("savedBy", "name")
+      .limit(20);
+
+    res.status(200).json({ versions });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch versions", error });
   }
 };

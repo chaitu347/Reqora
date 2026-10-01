@@ -37,6 +37,7 @@ export default function RequestEditorPage() {
   });
   const [initialHeaders, setInitialHeaders] = useState<Record<string, string>>({});
   const [accessDenied, setAccessDenied] = useState(false);
+  
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -60,6 +61,8 @@ export default function RequestEditorPage() {
   }
   setLoaded(true);
 };
+
+
 
   if (!loaded) {
   return (
@@ -119,6 +122,10 @@ function EditorBody({
   const [result, setResult] = useState<RunResult | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedJustNow, setSavedJustNow] = useState(false);
+  const [versions, setVersions] = useState<
+  { _id: string; method: string; url: string; savedBy: { name: string }; createdAt: string }[]
+  >([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   const methodStyles = (m: string) => {
     if (m === "GET") return { text: "#2563EB", bg: "#DBEAFE", border: "#2563EB" };
@@ -127,6 +134,14 @@ function EditorBody({
     return { text: "#DC2626", bg: "#FEE2E2", border: "#DC2626" };
   };
   const ms = methodStyles(fields.method);
+
+  const fetchVersions = async () => {
+  const res = await apiFetch("/requests/" + requestId + "/versions");
+  if (res.ok) {
+    const data = await res.json();
+    setVersions(data.versions);
+  }
+};
 
   const handleAddHeader = () => {
     if (!newHeaderKey.trim()) return;
@@ -153,22 +168,23 @@ function EditorBody({
   };
 
   const handleSave = async () => {
-    setSaving(true);
-    const res = await apiFetch("/requests/" + requestId, {
-      method: "PUT",
-      body: JSON.stringify({
-        method: fields.method,
-        url: fields.url,
-        body: fields.body,
-        headers,
-      }),
-    });
-    setSaving(false);
-    if (res.ok) {
-      setSavedJustNow(true);
-      setTimeout(() => setSavedJustNow(false), 2000);
-    }
-  };
+  setSaving(true);
+  const res = await apiFetch("/requests/" + requestId, {
+    method: "PUT",
+    body: JSON.stringify({
+      method: fields.method,
+      url: fields.url,
+      body: fields.body,
+      headers,
+    }),
+  });
+  setSaving(false);
+  if (res.ok) {
+    setSavedJustNow(true);
+    setTimeout(() => setSavedJustNow(false), 2000);
+    fetchVersions();
+  }
+};
 
   return (
     <main className="min-h-screen bg-[#F7F8FA] px-6 py-10 lg:px-16">
@@ -207,6 +223,15 @@ function EditorBody({
               className="rounded-lg border-2 border-[#111827] bg-white px-4 py-2 text-sm font-bold text-[#111827] transition-all hover:bg-[#F7F8FA] disabled:opacity-60"
             >
               {saving ? "Saving..." : savedJustNow ? "Saved ✓" : "Save"}
+            </button>
+            <button
+               onClick={() => {
+               setShowHistory((prev) => !prev);
+               if (!showHistory) fetchVersions();
+              }}
+              className="rounded-lg border-2 border-[#9333EA] bg-white px-4 py-2 text-sm font-bold text-[#9333EA] transition-all hover:bg-[#FAF5FF]"
+              >
+              History
             </button>
           </div>
         </div>
@@ -341,8 +366,40 @@ function EditorBody({
                 </>
               )}
             </div>
-          )}
+                    )}
         </div>
+
+        {showHistory && (
+          <div className="mt-6 rounded-2xl border-2 border-[#9333EA] bg-white p-6">
+            <p className="text-lg font-bold text-[#111827]">Version History</p>
+            {versions.length === 0 ? (
+              <p className="mt-2 text-sm text-[#6B7280]">
+                No saved versions yet — edits are recorded each time you click Save.
+              </p>
+            ) : (
+              <div className="mt-4 flex flex-col gap-3">
+                {versions.map((v) => (
+                  <div
+                    key={v._id}
+                    className="rounded-lg border border-[#E5E7EB] p-3"
+                  >
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-[family-name:var(--font-mono)] font-bold text-[#9333EA]">
+                        {v.method} {v.url}
+                      </span>
+                      <span className="text-[#6B7280]">
+                        {new Date(v.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-[#6B7280]">
+                      Saved by {v.savedBy?.name || "Unknown"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </main>
   );
